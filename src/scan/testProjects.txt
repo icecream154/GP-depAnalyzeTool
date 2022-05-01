@@ -1,0 +1,19 @@
+小型单体项目：
+    俄罗斯方块小游戏（无顶层设计）
+    哈夫曼压缩工具（过程式，分层逻辑）
+    学生培养计划修读报告生成工具（DDD）
+Web服务项目：
+    SpringBoot示例项目（分层架构）
+    SpringBoot+MyBatis电商系统示例项目 https://github.com/macrozheng/mall
+大型框架类项目：
+    Spark
+    Hadoop
+    Kafka
+    Zookeeper
+    Cassandra
+    Flink
+    ElasticSearch
+
+
+
+    jhotdraw
