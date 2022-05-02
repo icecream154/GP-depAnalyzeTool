@@ -1,7 +1,9 @@
 package scan;
 
 import core.model.data.Graph;
+import scan.match.ProjectDependencySpecification;
 
 public interface ProjectScanner {
-    Graph scanProject(String projectPath, ProjectLanguage projectLanguage, boolean needScan) throws Exception;
+    Graph scanProject(String projectPath, ProjectLanguage projectLanguage,
+                      boolean needScan, ProjectDependencySpecification projectDependencySpecification) throws Exception;
 }

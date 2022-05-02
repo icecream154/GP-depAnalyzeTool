@@ -43,7 +43,7 @@ public class Module {
     @Override
     public String toString() {
         return "Module{" +
-                ", name='" + name + '\'' +
+                "name='" + name + '\'' +
                 ", nodes=" + nodes.size() +
                 '}';
     }

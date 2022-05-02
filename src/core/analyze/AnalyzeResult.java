@@ -6,18 +6,25 @@ import core.model.data.Graph;
 import java.util.List;
 
 public class AnalyzeResult {
-    private Graph resultGraph;
-    private int iterationTime;
-    private List<IterationAnalyzeResult> iterationAnalyzeResultList;
+    private final AnalyzeTaskType analyzeTaskType;
+    private final Graph resultGraph;
+    private final int iterationTime;
+    private final List<IterationAnalyzeResult> iterationAnalyzeResultList;
 
-    public AnalyzeResult(Graph resultGraph, int iterationTime, List<IterationAnalyzeResult> iterationAnalyzeResultList) {
+    public AnalyzeResult(AnalyzeTaskType analyzeTaskType, Graph resultGraph,
+                         int iterationTime, List<IterationAnalyzeResult> iterationAnalyzeResultList) {
         this.resultGraph = resultGraph;
+        this.analyzeTaskType = analyzeTaskType;
         this.iterationTime = iterationTime;
         this.iterationAnalyzeResultList = iterationAnalyzeResultList;
     }
 
     public Graph getResultGraph() {
         return resultGraph;
+    }
+
+    public AnalyzeTaskType getAnalyzeTaskType() {
+        return analyzeTaskType;
     }
 
     public int getIterationTime() {
@@ -31,6 +38,7 @@ public class AnalyzeResult {
     @Override
     public String toString() {
         return "AnalyzeResult{\n" +
+                "analyzeTaskType=" + analyzeTaskType + ",\n" +
                 "resultGraph=" + resultGraph + ",\n" +
                 "iterationTime=" + iterationTime + ",\n" +
                 "iterationAnalyzeResultList=" + iterationAnalyzeResultList + "\n" +
@@ -38,6 +46,7 @@ public class AnalyzeResult {
     }
 
     public void showIterationInfo() {
+        System.out.println("Analyze Task: [" + analyzeTaskType + "]");
         for (IterationAnalyzeResult iterationAnalyzeResult : iterationAnalyzeResultList) {
             System.out.println(iterationAnalyzeResult.getIterationAnalyzeResultInfo());
         }

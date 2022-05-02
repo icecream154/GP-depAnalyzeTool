@@ -4,11 +4,7 @@ import core.analyze.statics.NodeToModuleDependency;
 import core.model.data.Module;
 import core.model.data.Node;
 
-import java.text.DecimalFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ModuleSpecification {
     private static final double ACCURATE_BARRIER = 0.25;
@@ -22,10 +18,11 @@ public class ModuleSpecification {
     private final Map<Module, Double> moduleMaxDependencyMap;
     private final Map<Module, Double> moduleMinDependencyMap;
     private double nonZeroDependencyAverageRange;
-    private double nonZeroRangeCount;
-    private double nonZeroRangeSum;
+    private final double nonZeroRangeCount;
+    private final double nonZeroRangeSum;
     private ModuleSpecificationAccuracy accuracy;
-
+    private final Set<Module> allowedDependentModules;
+    private final Set<ModuleSpecificationAccurayContribution> accurayContributions;
 
     @Override
     public String toString() {
@@ -55,6 +52,8 @@ public class ModuleSpecification {
         this.moduleMinDependencyMap = new HashMap<>();
         this.nonZeroDependencyAverageRange = 0;
         this.accuracy = null;
+        this.allowedDependentModules = new HashSet<>();
+        this.accurayContributions = new HashSet<>();
 
         int rangeCount = 0;
         double rangeSum = 0;
@@ -65,24 +64,37 @@ public class ModuleSpecification {
         */
         for (Module otherModule : otherModules) {
             double currentMax = 0;
+            Node currentMaxNode = null;
             double currentMin = Double.MAX_VALUE;
+            Node currentMinNode = null;
             double currentSum = 0;
 
             for (Node specifiationNode : specificationNodeSet) {
                 double l2Dependency = NodeToModuleDependency.queryModuleDependencyByNodeAndEndModule(specifiationNode,
                         otherModule).getL2NormalizedWeight();
                 currentSum += l2Dependency;
-                currentMax = Math.max(l2Dependency, currentMax);
-                currentMin = Math.min(l2Dependency, currentMin);
+                if (l2Dependency > currentMax) {
+                    currentMax = l2Dependency;
+                    currentMaxNode = specifiationNode;
+                }
+                if (l2Dependency < currentMin) {
+                    currentMin = l2Dependency;
+                    currentMinNode = specifiationNode;
+                }
             }
 
-            moduleAverageDependencyMap.put(otherModule, currentSum / specificationNodeSet.size());
+            double averageDependency = currentSum / specificationNodeSet.size();
+            moduleAverageDependencyMap.put(otherModule, averageDependency);
             moduleMaxDependencyMap.put(otherModule, currentMax);
             moduleMinDependencyMap.put(otherModule, currentMin);
 
             if (currentMax > 0) {
                 rangeCount++;
                 rangeSum += currentMax - currentMin;
+                allowedDependentModules.add(otherModule);
+                accurayContributions.add(new ModuleSpecificationAccurayContribution(
+                        otherModule, currentMaxNode, currentMax, currentMinNode, currentMin, averageDependency
+                ));
             }
         }
 
@@ -98,6 +110,11 @@ public class ModuleSpecification {
         nonZeroRangeSum = rangeSum;
         if (rangeCount != 0) {
             nonZeroDependencyAverageRange = rangeSum / rangeCount;
+            for (ModuleSpecificationAccurayContribution contribution : accurayContributions) {
+                contribution.setAccuracyContributionRate(
+                        (contribution.getAccuracyContributionWeight()) / rangeSum
+                );
+            }
         }
 
         if (nonZeroDependencyAverageRange <= ACCURATE_BARRIER) {
@@ -170,5 +187,13 @@ public class ModuleSpecification {
 
     public double getNonZeroRangeSum() {
         return nonZeroRangeSum;
+    }
+
+    public Set<Module> getAllowedDependentModules() {
+        return allowedDependentModules;
+    }
+
+    public Set<ModuleSpecificationAccurayContribution> getAccurayContributions() {
+        return accurayContributions;
     }
 }

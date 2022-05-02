@@ -12,6 +12,8 @@ import core.model.data.Node;
 import scan.ProjectLanguage;
 import scan.ProjectScanner;
 import scan.SourceCodeFile;
+import scan.match.ModuleDependencySpecification;
+import scan.match.ProjectDependencySpecification;
 import scan.utils.FileUtils;
 
 import java.io.BufferedReader;
@@ -48,7 +50,8 @@ public class DependencyProjectScanner implements ProjectScanner {
     }
 
     @Override
-    public Graph scanProject(String projectPath, ProjectLanguage projectLanguage, boolean needScan) throws Exception {
+    public Graph scanProject(String projectPath, ProjectLanguage projectLanguage, boolean needScan,
+                             ProjectDependencySpecification projectDependencySpecification) throws Exception {
         // 当前仅支持java语言
         if (projectLanguage != ProjectLanguage.JAVA) {
             throw new RuntimeException("Language not supported");
@@ -89,15 +92,49 @@ public class DependencyProjectScanner implements ProjectScanner {
             nodeList.add(new Node(i, fileName, new SourceCodeFile(absolutePath, fileProjectPath, fileName)));
         }
 
-        // 根据文件目录结构构造初始模块
+        // 根据配置或文件目录结构构构造初始模块
         Set<Module> initModules = new HashSet<>();
-        Map<String, Set<Node>> dirs = new HashMap<>();
-        for (Node node : nodeList) {
-            Set<Node> nodeSet = dirs.computeIfAbsent(node.getReferenceObject().getProjectDir(), k -> new HashSet<>());
-            nodeSet.add(node);
-        }
-        for (String projectDir : dirs.keySet()) {
-            initModules.add(new Module(projectDir, dirs.get(projectDir), true));
+        Set<Node> specifiedNodes = new HashSet<>();
+        // 现根据配置进行划分
+        if (projectDependencySpecification != null) {
+            Map<String, Module> pathModuleMap = new HashMap<>();
+            for (ModuleDependencySpecification moduleSpecification :
+                    projectDependencySpecification.getProjectStructure()) {
+                pathModuleMap.put(moduleSpecification.getModulePath(),
+                        new Module(moduleSpecification.getModuleName(), new HashSet<>(), true));
+            }
+            for (Node node : nodeList) {
+                String currentMatchPath = null;
+                Module currentMatchModule = null;
+                for (String path : pathModuleMap.keySet()) {
+                    if (node.getReferenceObject().getProjectDir().startsWith(path) &&
+                            (currentMatchPath == null || path.length() > currentMatchPath.length())) {
+                        currentMatchPath = path;
+                        currentMatchModule = pathModuleMap.get(path);
+                    }
+                }
+                if (currentMatchModule != null) {
+                    node.setModule(currentMatchModule);
+                    specifiedNodes.add(node);
+                }
+            }
+            for (Module module : pathModuleMap.values()) {
+                if (!module.getNodes().isEmpty()) {
+                    initModules.add(module);
+                }
+            }
+
+        } else {
+            // Cluster任务根据文件目录结构划分
+            Map<String, Set<Node>> dirs = new HashMap<>();
+            for (Node node : nodeList) {
+                Set<Node> nodeSet = dirs.computeIfAbsent(node.getReferenceObject().getProjectDir(), k -> new HashSet<>());
+                nodeSet.add(node);
+                specifiedNodes.add(node);
+            }
+            for (String projectDir : dirs.keySet()) {
+                initModules.add(new Module(projectDir, dirs.get(projectDir), true));
+            }
         }
 
         // 构建代表依赖关系的边
@@ -123,6 +160,11 @@ public class DependencyProjectScanner implements ProjectScanner {
             JSONObject currentCell = cellsArray.getJSONObject(i);
             int srcIndex = currentCell.getInteger("src");
             int destIndex = currentCell.getInteger("dest");
+
+            // 检测该节点是否在处理范围内
+            if (!specifiedNodes.contains(nodeList.get(srcIndex)) || !specifiedNodes.contains(nodeList.get(destIndex))) {
+                continue;
+            }
 
             JSONObject valueObject = currentCell.getJSONObject("values");
             double edgeWeight = 0;
@@ -178,7 +220,7 @@ public class DependencyProjectScanner implements ProjectScanner {
             edgeSet.add(newEdge);
         }
 
-        return new Graph(new HashSet<>(nodeList), edgeSet, initModules);
+        return new Graph(specifiedNodes, edgeSet, initModules);
     }
 }
 

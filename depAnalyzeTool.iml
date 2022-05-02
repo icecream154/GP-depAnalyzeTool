@@ -35,5 +35,6 @@
     </orderEntry>
     <orderEntry type="library" name="alibaba.fastjson2" level="project" />
     <orderEntry type="library" name="alibaba.fastjson" level="project" />
+    <orderEntry type="library" name="yaml.snakeyaml" level="project" />
   </component>
 </module>

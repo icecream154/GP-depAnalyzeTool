@@ -1,0 +1,28 @@
+projectName: "Spring demo"          # 工程项目名称
+projectLanguage: "Java"             # 工程项目使用的编程语言
+projectFrame: "SpringBoot"          # 工程项目框架
+projectStructure:                   # 工程项目模块划分
+  - moduleName: "Model"                                 # 模块名称
+    moduleDescription: "Model classes of the system"    # 模块描述
+    modulePath: "src/main/java/com/example/demo/model"  # 模块路径
+    allowInModuleDependency: true                       # 模块是否允许存在内部依赖
+  - moduleName: "Repository"
+    moduleDescription: "Repositories for access the database"
+    modulePath: "src/main/java/com/example/demo/repository"
+    allowInModuleDependency: false
+    dependentModules:                                   # 模块依赖的外部模块
+      - "Model"
+  - moduleName: "Service"
+    moduleDescription: "Services for application logic"
+    modulePath: "src/main/java/com/example/demo/service"
+    allowInModuleDependency: true
+    dependentModules:
+      - "Repository"
+      - "Model"
+  - moduleName: "Controller"
+    moduleDescription: "Contorllers to handle incoming requests"
+    modulePath: "src/main/java/com/example/demo/controller"
+    allowInModuleDependency: false
+    dependentModules:
+      - "Service"
+      - "Model"

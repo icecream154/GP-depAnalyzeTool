@@ -13,6 +13,17 @@ public class SourceCodeFile implements NodeReferenceObject {
         this.fileName = fileName;
     }
 
+    @Override
+    public String toString() {
+        return "SourceCodeFile{" +
+                "absolutePath='" + absolutePath + '\'' +
+                ", absoluteDir='" + getAbsoluteDir() + '\'' +
+                ", projectPath='" + projectPath + '\'' +
+                ", projectDir='" + getProjectDir() + '\'' +
+                ", fileName='" + fileName + '\'' +
+                '}';
+    }
+
     public String getAbsolutePath() {
         return absolutePath;
     }

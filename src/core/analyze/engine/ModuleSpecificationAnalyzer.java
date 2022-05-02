@@ -9,6 +9,36 @@ import java.util.*;
 
 public class ModuleSpecificationAnalyzer {
 
+    public ModuleSpecification matchModulePattern(Module module, List<Module> otherModules,
+                                                  Set<Module> allowedDependentModules) {
+        Map<Node, List<NodeToModuleDependency>> map = new HashMap<>();
+        Set<Node> specificationNodeSet = new HashSet<>();
+        Set<Node> abnormalNodeSet = new HashSet<>();
+
+        for (Node node : module.getNodes()) {
+            boolean divided = false;
+            List<NodeToModuleDependency> nodeToModuleDependencyList = new ArrayList<>();
+            for (Module otherModule : otherModules) {
+                NodeToModuleDependency toModuleDependency =
+                        NodeToModuleDependency.queryModuleDependencyByNodeAndEndModule(node, otherModule);
+                if (!divided && toModuleDependency.getL2NormalizedWeight() != 0 && !allowedDependentModules.contains(otherModule)) {
+                    abnormalNodeSet.add(node);
+                    divided = true;
+                }
+                nodeToModuleDependencyList.add(toModuleDependency);
+            }
+            if (!divided) {
+                specificationNodeSet.add(node);
+            }
+            map.put(node, nodeToModuleDependencyList);
+        }
+
+        ModuleSpecification moduleSpecification = new ModuleSpecification(module, specificationNodeSet,
+                abnormalNodeSet, otherModules, map);
+        module.setModuleSpecification(moduleSpecification);
+        return moduleSpecification;
+    }
+
     public ModuleSpecification analyzeModulePattern(Module module, List<Module> otherModules) {
         /*
         [A2]: 模块节点ModuleDependency向量模式发现算法

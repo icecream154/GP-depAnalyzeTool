@@ -1,9 +1,8 @@
 package core.analyze.test;
 
-import core.analyze.AnalyzeConfig;
-import core.analyze.AnalyzeResult;
-import core.analyze.Analyzer;
-import core.analyze.AnalyzerIterationStrategy;
+import core.analyze.*;
+import core.analyze.config.AnalyzeClusterConfig;
+import core.analyze.config.AnalyzerIterationStrategy;
 import core.model.data.*;
 import core.model.data.Module;
 
@@ -93,7 +92,8 @@ public class GraphAnalyzeTest {
         Set<Module> modules = mockInitNodeModules(7, nodeSet);
 
         Graph initGraph = new Graph(nodeSet, edgeSet, modules);
-        Analyzer analyzer = new Analyzer(initGraph, new AnalyzeConfig(AnalyzerIterationStrategy.FIX, 3));
+        Analyzer analyzer = new Analyzer(initGraph, AnalyzeTaskType.CLUSTER, null,
+                new AnalyzeClusterConfig(AnalyzerIterationStrategy.FIX, 3));
         AnalyzeResult result = analyzer.executeAnalyze();
         result.showIterationInfo();
     }

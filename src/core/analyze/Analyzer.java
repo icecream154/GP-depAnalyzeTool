@@ -1,5 +1,8 @@
 package core.analyze;
 
+import core.analyze.config.AnalyzeClusterConfig;
+import core.analyze.config.AnalyzeMatchConfig;
+import core.analyze.config.AnalyzerIterationStrategy;
 import core.analyze.engine.ModuleSpecificationAnalyzer;
 import core.analyze.engine.NodePartitionAnalyzer;
 import core.analyze.iteration.IterationAnalyzeResult;
@@ -13,34 +16,75 @@ import java.util.*;
 
 public class Analyzer {
     private final Graph originalGraph;
-    private final AnalyzeConfig analyzeConfig;
+    private final AnalyzeTaskType analyzeTaskType;
+    private final AnalyzeMatchConfig analyzeMatchConfig;
+    private final AnalyzeClusterConfig analyzeClusterConfig;
 
-    public Analyzer(Graph originalGraph, AnalyzeConfig analyzeConfig) {
+    public Analyzer(Graph originalGraph, AnalyzeTaskType analyzeTaskType,
+                    AnalyzeMatchConfig analyzeMatchConfig, AnalyzeClusterConfig analyzeClusterConfig) {
         this.originalGraph = originalGraph;
-        this.analyzeConfig = analyzeConfig;
+        this.analyzeTaskType = analyzeTaskType;
+        this.analyzeMatchConfig = analyzeMatchConfig;
+        this.analyzeClusterConfig = analyzeClusterConfig;
     }
 
-    public AnalyzeResult executeAnalyze() {
+    private AnalyzeResult executeMatchAnalyze() {
+        assert (analyzeMatchConfig != null);
         ModuleSpecificationAnalyzer moduleSpecificationAnalyzer = new ModuleSpecificationAnalyzer();
-        NodePartitionAnalyzer nodePartitionAnalyzer = new NodePartitionAnalyzer();
 
-        assert (analyzeConfig.getIterationStrategy() == AnalyzerIterationStrategy.FIX);
+        List<IterationAnalyzeResult> iterationAnalyzeResultList = new ArrayList<>();
+        Graph iterationGraph = originalGraph;
+
+        IterationAnalyzeResult iterationAnalyzeResult = new IterationAnalyzeResult(1, iterationGraph);
+        NodeToModuleDependency.register(iterationGraph);
+        /*
+        根据每一个模块允许依赖的外部模块，生成相应的模块依赖特征。
+        */
+        Set<ModuleSpecification> accurateSpecifications = new HashSet<>();
+        Set<ModuleSpecification> normalSpecifications = new HashSet<>();
+        Set<ModuleSpecification> looseSpecifications = new HashSet<>();
+        Set<Node> unClassifiedNodes = new HashSet<>();
+
+        for (Module module : iterationGraph.getModules()) {
+            Set<Module> otherModules = new HashSet<>(iterationGraph.getModules());
+            otherModules.remove(module);
+            // System.out.println(module.getName());
+            // System.out.println(analyzeMatchConfig.getAllowedDependentModules().keySet());
+            // System.out.println(analyzeMatchConfig.getAllowedDependentModules().containsKey(module));
+            ModuleSpecification moduleSpecification = moduleSpecificationAnalyzer.
+                    matchModulePattern(module, new ArrayList<>(otherModules),
+                            analyzeMatchConfig.getAllowedDependentModules().get(module));
+            unClassifiedNodes.addAll(moduleSpecification.getAbnormalNodeSet());
+            switch (moduleSpecification.getAccuracy()) {
+                case LOOSE -> looseSpecifications.add(moduleSpecification);
+                case NORMAL -> normalSpecifications.add(moduleSpecification);
+                case ACCURATE -> accurateSpecifications.add(moduleSpecification);
+            }
+        }
+
+        updateGraph(iterationGraph, iterationAnalyzeResult, unClassifiedNodes,
+                accurateSpecifications, normalSpecifications, looseSpecifications, false);
+
+        // 生成本次迭代结果
+        iterationAnalyzeResultList.add(iterationAnalyzeResult);
+
+        return new AnalyzeResult(analyzeTaskType, iterationGraph.clone(), 1, iterationAnalyzeResultList);
+    }
+
+    private AnalyzeResult executeClusterAnalyze() {
+        assert (analyzeClusterConfig != null);
+        assert (analyzeClusterConfig.getIterationStrategy() == AnalyzerIterationStrategy.FIX);
+        ModuleSpecificationAnalyzer moduleSpecificationAnalyzer = new ModuleSpecificationAnalyzer();
 
         boolean needNextIteration = true;
         int iterationTime = 0;
         List<IterationAnalyzeResult> iterationAnalyzeResultList = new ArrayList<>();
         Graph iterationGraph = originalGraph;
 
-        int iterationIndex = 1;
         while (needNextIteration) {
-            System.out.println("Iteration[" + iterationIndex + "] " +
-                    " Start");
-
             iterationGraph = iterationGraph.clone();
-            IterationAnalyzeResult iterationAnalyzeResult = new IterationAnalyzeResult(iterationIndex, iterationGraph);
+            IterationAnalyzeResult iterationAnalyzeResult = new IterationAnalyzeResult(iterationTime + 1, iterationGraph);
             NodeToModuleDependency.register(iterationGraph);
-            System.out.println("Iteration[" + iterationIndex + "]: " +
-                    " Node to Module Dependency Register Success");
 
             /*
             分析阶段：
@@ -78,87 +122,103 @@ public class Analyzer {
                     case NORMAL -> normalSpecifications.add(moduleSpecification);
                     case ACCURATE -> accurateSpecifications.add(moduleSpecification);
                 }
-                System.out.println("Iteration[" + iterationIndex + "]: " +
-                        " Module[" + module.getName() + "] Specification Analyze Success");
             }
 
-            /*
-            变更阶段：
-            节点与ModuleSpecification的距离计算公式：<实际依赖向量> 到 <目标模块依赖均值向量> 的欧几里得距离。(不考虑到待变更节点所在的模块)
-                ①对于不符合ModuleSpecification的所有节点，遍历匹配所有[收敛]的ModuleSpecification。如果成功匹配，变更该节点所属的模块。
-                ②对于依旧尚未匹配模块的节点，遍历匹配所有[分散]的ModuleSpecification。如果成功匹配，变更该节点所属的模块。
-                ③对于依旧尚未匹配模块的节点，遍历计算到所有[稀疏]ModuleSpecification的距离，如果成功匹配，变更该节点所属的模块。
-                *④剩余的节点使用稀疏节点模块划分算法[A3]，得到新的若干模块。
-            */
+            updateGraph(iterationGraph, iterationAnalyzeResult, unClassifiedNodes,
+                    accurateSpecifications, normalSpecifications, looseSpecifications, true);
 
-            for (Node unclassifiedNode : unClassifiedNodes) {
-                boolean classified = false;
-                for (ModuleSpecification specification : accurateSpecifications) {
+            // 增加迭代次数，并生成本次迭代结果
+            iterationTime++;
+            iterationAnalyzeResultList.add(iterationAnalyzeResult);
+
+            needNextIteration = iterationTime < analyzeClusterConfig.getFixIteration();
+        }
+
+        return new AnalyzeResult(analyzeTaskType, iterationGraph.clone(), iterationTime, iterationAnalyzeResultList);
+    }
+
+    private void updateGraph(Graph iterationGraph, IterationAnalyzeResult iterationAnalyzeResult,
+                             Set<Node> unClassifiedNodes, Set<ModuleSpecification> accurateSpecifications,
+                             Set<ModuleSpecification> normalSpecifications, Set<ModuleSpecification> looseSpecifications,
+                             boolean reAssignLooseModules) {
+        /*
+        变更阶段：
+        节点与ModuleSpecification的距离计算公式：<实际依赖向量> 到 <目标模块依赖均值向量> 的欧几里得距离。(不考虑到待变更节点所在的模块)
+            ①对于不符合ModuleSpecification的所有节点，遍历匹配所有[收敛]的ModuleSpecification。如果成功匹配，变更该节点所属的模块。
+            ②对于依旧尚未匹配模块的节点，遍历匹配所有[分散]的ModuleSpecification。如果成功匹配，变更该节点所属的模块。
+            ③对于依旧尚未匹配模块的节点，遍历计算到所有[稀疏]ModuleSpecification的距离，如果成功匹配，变更该节点所属的模块。
+            *④剩余的节点使用稀疏节点模块划分算法[A3]，得到新的若干模块。
+        */
+
+        System.out.println("UnClassifiedNodes: " + unClassifiedNodes);
+        Set<Node> classifedNodes = new HashSet<>();
+        for (Node unclassifiedNode : unClassifiedNodes) {
+            boolean classified = false;
+            for (ModuleSpecification specification : accurateSpecifications) {
+                if (specification.matchSpecification(unclassifiedNode).isMatch()) {
+                    unclassifiedNode.setModule(specification.getModule());
+                    classified = true;
+                    break;
+                }
+            }
+            if (!classified) {
+                for (ModuleSpecification specification : normalSpecifications) {
                     if (specification.matchSpecification(unclassifiedNode).isMatch()) {
                         unclassifiedNode.setModule(specification.getModule());
                         classified = true;
                         break;
                     }
                 }
-
-                if (!classified) {
-                    for (ModuleSpecification specification : normalSpecifications) {
-                        if (specification.matchSpecification(unclassifiedNode).isMatch()) {
-                            unclassifiedNode.setModule(specification.getModule());
-                            classified = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!classified) {
-                    for (ModuleSpecification specification : looseSpecifications) {
-                        if (specification.matchSpecification(unclassifiedNode).isMatch()) {
-                            unclassifiedNode.setModule(specification.getModule());
-                            break;
-                        }
+            }
+            if (!classified) {
+                for (ModuleSpecification specification : looseSpecifications) {
+                    if (specification.matchSpecification(unclassifiedNode).isMatch()) {
+                        unclassifiedNode.setModule(specification.getModule());
+                        classified = true;
+                        break;
                     }
                 }
             }
-            System.out.println("Iteration[" + iterationIndex + "]: " +
-                    " Unclassifed Nodes Match Over");
 
-            // 使用稀疏节点划分算法，重新生成模块
-            List<Module> referenceModules = new ArrayList<>();
-            for (ModuleSpecification specification : accurateSpecifications) {
-                referenceModules.add(specification.getModule());
+            if (classified) {
+                classifedNodes.add(unclassifiedNode);
             }
-            for (ModuleSpecification specification : normalSpecifications) {
-                referenceModules.add(specification.getModule());
-            }
+        }
 
-            Set<Node> sparseNodes = new HashSet<>(unClassifiedNodes);
+        NodePartitionAnalyzer nodePartitionAnalyzer = new NodePartitionAnalyzer();
+        // 使用稀疏节点划分算法，重新生成模块
+        List<Module> referenceModules = new ArrayList<>();
+        for (ModuleSpecification specification : accurateSpecifications) {
+            referenceModules.add(specification.getModule());
+        }
+        for (ModuleSpecification specification : normalSpecifications) {
+            referenceModules.add(specification.getModule());
+        }
+
+        Set<Node> sparseNodes = new HashSet<>(unClassifiedNodes);
+        sparseNodes.removeAll(classifedNodes);
+        // System.out.println("Reference Modules: " + referenceModules);
+        // System.out.println("Sparse Nodes: " + sparseNodes);
+
+        if (reAssignLooseModules) {
             for (ModuleSpecification specification : looseSpecifications) {
                 sparseNodes.addAll(specification.getSpecificationNodeSet());
             }
-            System.out.println("Iteration[" + iterationIndex + "]: " +
-                    " SparseNodes Collection Size " + sparseNodes.size());
-
-            Set<Module> newModules = nodePartitionAnalyzer.partitionSparseNodes(sparseNodes, referenceModules);
-            iterationGraph.getModules().addAll(newModules);
-
-            // 清除无任何节点的模块
-            Set<Module> emptyModules = iterationGraph.clearEmptyModules();
-            iterationAnalyzeResult.setEmptyModules(emptyModules);
-
-            System.out.println("Iteration[" + iterationIndex + "]: " +
-                    " New " + newModules.size() + " Modules Generate Success");
-
-            // 增加迭代次数，并生成本次迭代结果
-            iterationTime++;
-            iterationAnalyzeResultList.add(iterationAnalyzeResult);
-
-            needNextIteration = iterationTime < analyzeConfig.getFixIteration();
-            iterationIndex++;
         }
 
-        return new AnalyzeResult(iterationGraph.clone(), iterationTime, iterationAnalyzeResultList);
+        Set<Module> newModules = nodePartitionAnalyzer.partitionSparseNodes(sparseNodes, referenceModules);
+        iterationGraph.getModules().addAll(newModules);
+
+        // 清除无任何节点的模块
+        Set<Module> emptyModules = iterationGraph.clearEmptyModules();
+        iterationAnalyzeResult.setEmptyModules(emptyModules);
     }
 
 
+    public AnalyzeResult executeAnalyze() {
+        return switch (analyzeTaskType) {
+            case CLUSTER -> executeClusterAnalyze();
+            case MATCH -> executeMatchAnalyze();
+        };
+    }
 }

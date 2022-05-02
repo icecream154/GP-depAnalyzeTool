@@ -6,11 +6,20 @@ public class Graph {
     private Set<Node> nodes;
     private Set<Edge> edges;
     private Set<Module> modules;
+    private Map<String, Module> nameModuleMap;
 
     public Graph(Set<Node> nodes, Set<Edge> edges, Set<Module> initModules) {
         this.nodes = new HashSet<>(nodes);
         this.edges = new HashSet<>(edges);
         this.modules = new HashSet<>(initModules);
+        nameModuleMap = new HashMap<>();
+        for (Module module : modules) {
+            nameModuleMap.put(module.getName(), module);
+        }
+    }
+
+    public Module getModuleByName(String name) {
+        return nameModuleMap.get(name);
     }
 
     public Graph clone() {
@@ -54,6 +63,11 @@ public class Graph {
             }
         }
         modules.removeAll(emptyModules);
+
+        nameModuleMap.clear();
+        for (Module module : modules) {
+            nameModuleMap.put(module.getName(), module);
+        }
         return emptyModules;
     }
 }

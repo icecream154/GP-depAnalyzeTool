@@ -13,11 +13,22 @@ public class NodeToModuleDependency {
     private final Module endModule;
     private final Set<Edge> relatedEdges;
     private double allWeightOfRelatedEdges;
-    private double L2NormalizedWeight;
+    private double l2NormalizedWeight;
 
     private static Map<Node, Set<NodeToModuleDependency>> nodeQueryMap;
     private static Map<Module, Set<NodeToModuleDependency>> moduleQueryMap;
     private static Map<Module, Double> moduleSumSqrtMap;
+
+    @Override
+    public String toString() {
+        return "NodeToModuleDependency{" +
+                "node=" + node +
+                ", endModule=" + endModule +
+                ", relatedEdges=" + relatedEdges +
+                ", allWeightOfRelatedEdges=" + allWeightOfRelatedEdges +
+                ", l2NormalizedWeight=" + l2NormalizedWeight +
+                '}';
+    }
 
     public static double calculateDistance(List<NodeToModuleDependency> n1List, List<NodeToModuleDependency> n2List) {
         assert (n1List.size() == n2List.size());
@@ -95,6 +106,7 @@ public class NodeToModuleDependency {
             for (Module module : graph.getModules()) {
                 if (n.getModule() != module) {
                     NodeToModuleDependency nodeToModuleDependency = new NodeToModuleDependency(n, module);
+                    // System.out.println("Node to module dependency built for: Node=" + n.getName() + " module=" + module.getName());
                     nodeQueryMap.get(n).add(nodeToModuleDependency);
                     moduleQueryMap.get(module).add(nodeToModuleDependency);
                 }
@@ -144,6 +156,7 @@ public class NodeToModuleDependency {
                 return nodeToModuleDependency;
             }
         }
+        System.out.println("Null returned for Node: " + node.getName() + " Node's Module: " + node.getModule().getName() + " Module: " + module.getName());
         return null;
     }
 
@@ -152,6 +165,7 @@ public class NodeToModuleDependency {
         this.endModule = endModule;
         this.relatedEdges = new HashSet<>();
         this.allWeightOfRelatedEdges = 0;
+        this.l2NormalizedWeight = 0;
         for (Edge e : node.getOutcomingEdges()) {
             if (endModule.getNodes().contains(e.getEndNode())) {
                 relatedEdges.add(e);
@@ -177,10 +191,10 @@ public class NodeToModuleDependency {
     }
 
     public double getL2NormalizedWeight() {
-        return L2NormalizedWeight;
+        return l2NormalizedWeight;
     }
 
-    public void setL2NormalizedWeight(double l2NormalizedWeight) {
-        L2NormalizedWeight = l2NormalizedWeight;
+    private void setL2NormalizedWeight(double l2NormalizedWeight) {
+        this.l2NormalizedWeight = l2NormalizedWeight;
     }
 }
