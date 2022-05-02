@@ -40,7 +40,7 @@ public class Graph {
             for (Node node : module.getNodes()) {
                 moduleNodes.add(newNodeMap.get(node.getName()));
             }
-            modules.add(new Module(module.getName(), moduleNodes, module.isFromInitGraph()));
+            modules.add(new Module(module.getName(), module.getPath(), moduleNodes, module.isFromInitGraph()));
         }
         return new Graph(new HashSet(newNodeMap.values()), newEdgeSet, modules);
     }

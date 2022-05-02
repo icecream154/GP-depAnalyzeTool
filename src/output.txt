@@ -1,0 +1,35 @@
+{
+    "projectName":"complete",
+    "projectLanguage":"Java",
+    "projectFrame":"",
+    "taskType":"CLUSTER",
+    "modules":[{
+        "moduleName":"service",
+        "modulePath":"/src/main/java/com/example/accessingdatamysql/service",
+        "moduleNodeNames":["ArticleService.java","UserService.java"],
+        "dependentModuleNames":["model","repository"],
+        "accuray":"NORMAL",
+        "moduleNodeAdvises":[{
+            "nodeName":"UserService.java",
+            "dependentModule":"repository"
+        }]
+    },{
+        "moduleName":"model",
+        "modulePath":"/src/main/java/com/example/accessingdatamysql/model",
+        "moduleNodeNames":["User.java","Article.java"],
+        "dependentModuleNames":[],
+        "accuray":"ACCURATE",
+    },{
+        "moduleName":"controller",
+        "modulePath":"/src/main/java/com/example/accessingdatamysql/controller",
+        "moduleNodeNames":["ArticleController.java","UserController.java"],
+        "dependentModuleNames":["service","model"],
+        "accuray":"ACCURATE",
+    },{
+        "moduleName":"repository",
+        "modulePath":"/src/main/java/com/example/accessingdatamysql/repository",
+        "moduleNodeNames":["ArticleRepository.java","UserRepository.java"],
+        "dependentModuleNames":["model"],
+        "accuray":"ACCURATE",
+    }]
+}

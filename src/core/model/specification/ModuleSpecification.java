@@ -13,6 +13,7 @@ public class ModuleSpecification {
     private final Module module;
     private final Set<Node> specificationNodeSet;
     private final Set<Node> abnormalNodeSet;
+    private final Set<Node> matchNodeSet; //新增匹配的节点
     private final Map<Node, List<NodeToModuleDependency>> nodeDependencyVectorMap;
     private final Map<Module, Double> moduleAverageDependencyMap;
     private final Map<Module, Double> moduleMaxDependencyMap;
@@ -31,6 +32,7 @@ public class ModuleSpecification {
                 " nodeDependencyVectorMap=" + NodeToModuleDependency.getNodeDependencyVectorInfo(1, nodeDependencyVectorMap) + ",\n" +
                 " specificationNodeSet=" + specificationNodeSet + ",\n" +
                 " abnormalNodeSet=" + abnormalNodeSet + ",\n" +
+                " matchNodeSet=" + matchNodeSet + ",\n" +
                 " moduleAverageDependencyMap=" + NodeToModuleDependency.getDependencyMapVectorInfo(moduleAverageDependencyMap) + ",\n" +
                 " moduleMaxDependencyMap=" + NodeToModuleDependency.getDependencyMapVectorInfo(moduleMaxDependencyMap) + ",\n" +
                 " moduleMinDependencyMap=" + NodeToModuleDependency.getDependencyMapVectorInfo(moduleMinDependencyMap) + ",\n" +
@@ -46,6 +48,7 @@ public class ModuleSpecification {
         this.module = module;
         this.specificationNodeSet = specificationNodeSet;
         this.abnormalNodeSet = abnormalNodeSet;
+        this.matchNodeSet = new HashSet<>();
         this.nodeDependencyVectorMap = nodeDependencyVectorMap;
         this.moduleAverageDependencyMap = new HashMap<>();
         this.moduleMaxDependencyMap = new HashMap<>();
@@ -161,6 +164,10 @@ public class ModuleSpecification {
         return abnormalNodeSet;
     }
 
+    public Set<Node> getMatchNodeSet() {
+        return matchNodeSet;
+    }
+
     public Map<Module, Double> getModuleMaxDependencyMap() {
         return moduleMaxDependencyMap;
     }
@@ -191,6 +198,36 @@ public class ModuleSpecification {
 
     public Set<Module> getAllowedDependentModules() {
         return allowedDependentModules;
+    }
+
+    public String[] getDependentModuleNames() {
+        String[] res = new String[allowedDependentModules.size()];
+        int i = 0;
+        for (Module module : allowedDependentModules) {
+            res[i] = module.getName();
+            i++;
+        }
+        return res;
+    }
+
+    public String[] getMatchNodeNames() {
+        String[] res = new String[matchNodeSet.size()];
+        int i = 0;
+        for (Node node : matchNodeSet) {
+            res[i] = node.getName();
+            i++;
+        }
+        return res;
+    }
+
+    public String[] getUnMatchNodeNames() {
+        String[] res = new String[abnormalNodeSet.size()];
+        int i = 0;
+        for (Node node : abnormalNodeSet) {
+            res[i] = node.getName();
+            i++;
+        }
+        return res;
     }
 
     public Set<ModuleSpecificationAccurayContribution> getAccurayContributions() {

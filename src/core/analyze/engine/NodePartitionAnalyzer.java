@@ -1,6 +1,8 @@
 package core.analyze.engine;
 
 import core.analyze.iteration.IterationAnalyzeResult;
+import core.analyze.iteration.NodeMoveReason;
+import core.analyze.iteration.NodeMoveResult;
 import core.analyze.statics.NodeToModuleDependency;
 import core.model.data.Module;
 import core.model.data.Node;
@@ -132,7 +134,8 @@ public class NodePartitionAnalyzer {
 
     }
 
-    public Set<Module> partitionSparseNodes(Set<Node> nodes, List<Module> referenceModules) {
+    public Set<Module> partitionSparseNodes(Set<Node> nodes, List<Module> referenceModules,
+                                            IterationAnalyzeResult iterationAnalyzeResult) {
         /*
         *[A3]：稀疏节点模块划分算法
         算法输入：稀疏模块中节点构成的集合，对于集合中的每一个节点，取该节点对于收敛与分散模块的依赖组成节点的外部依赖向量。
@@ -201,7 +204,15 @@ public class NodePartitionAnalyzer {
         Set<Module> newModules = new HashSet<>();
         int index = 0;
         for (TempModule tempModule : tempModules) {
-            newModules.add(new Module("NewModule[" + index + "]", new HashSet<>(tempModule.getNodes()), false));
+            Module newModule = new Module("NewModule(" + index + ")", "", new HashSet<>(), false);
+            for (Node node : tempModule.getNodes()) {
+                iterationAnalyzeResult.getNodeMoveResults().add(
+                        new NodeMoveResult(node, node.getModule(), newModule, NodeMoveReason.RECOMBINE)
+                );
+                node.setModule(newModule);
+            }
+
+            newModules.add(newModule);
             index++;
         }
         return newModules;

@@ -46,7 +46,7 @@ public class ProjectDependencySpecification {
             }
             return specification;
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            System.out.println("Yaml Config not found");
         }
         return null;
     }

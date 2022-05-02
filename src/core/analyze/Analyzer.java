@@ -3,9 +3,12 @@ package core.analyze;
 import core.analyze.config.AnalyzeClusterConfig;
 import core.analyze.config.AnalyzeMatchConfig;
 import core.analyze.config.AnalyzerIterationStrategy;
+import core.analyze.config.ProjectConfig;
 import core.analyze.engine.ModuleSpecificationAnalyzer;
 import core.analyze.engine.NodePartitionAnalyzer;
 import core.analyze.iteration.IterationAnalyzeResult;
+import core.analyze.iteration.NodeMoveReason;
+import core.analyze.iteration.NodeMoveResult;
 import core.analyze.statics.NodeToModuleDependency;
 import core.model.data.Graph;
 import core.model.data.Module;
@@ -17,13 +20,15 @@ import java.util.*;
 public class Analyzer {
     private final Graph originalGraph;
     private final AnalyzeTaskType analyzeTaskType;
+    private final ProjectConfig projectConfig;
     private final AnalyzeMatchConfig analyzeMatchConfig;
     private final AnalyzeClusterConfig analyzeClusterConfig;
 
-    public Analyzer(Graph originalGraph, AnalyzeTaskType analyzeTaskType,
+    public Analyzer(Graph originalGraph, AnalyzeTaskType analyzeTaskType, ProjectConfig projectConfig,
                     AnalyzeMatchConfig analyzeMatchConfig, AnalyzeClusterConfig analyzeClusterConfig) {
         this.originalGraph = originalGraph;
         this.analyzeTaskType = analyzeTaskType;
+        this.projectConfig = projectConfig;
         this.analyzeMatchConfig = analyzeMatchConfig;
         this.analyzeClusterConfig = analyzeClusterConfig;
     }
@@ -68,7 +73,7 @@ public class Analyzer {
         // 生成本次迭代结果
         iterationAnalyzeResultList.add(iterationAnalyzeResult);
 
-        return new AnalyzeResult(analyzeTaskType, iterationGraph.clone(), 1, iterationAnalyzeResultList);
+        return new AnalyzeResult(this, iterationGraph.clone(), 1, iterationAnalyzeResultList);
     }
 
     private AnalyzeResult executeClusterAnalyze() {
@@ -123,9 +128,12 @@ public class Analyzer {
                     case ACCURATE -> accurateSpecifications.add(moduleSpecification);
                 }
             }
+            System.out.println("Iteration[" + iterationTime + "] specification analyze over");
 
             updateGraph(iterationGraph, iterationAnalyzeResult, unClassifiedNodes,
-                    accurateSpecifications, normalSpecifications, looseSpecifications, true);
+                    accurateSpecifications, normalSpecifications, looseSpecifications,
+                    analyzeClusterConfig.isLooseReCluster());
+            System.out.println("Iteration[" + iterationTime + "] nodes cluster over");
 
             // 增加迭代次数，并生成本次迭代结果
             iterationTime++;
@@ -134,7 +142,7 @@ public class Analyzer {
             needNextIteration = iterationTime < analyzeClusterConfig.getFixIteration();
         }
 
-        return new AnalyzeResult(analyzeTaskType, iterationGraph.clone(), iterationTime, iterationAnalyzeResultList);
+        return new AnalyzeResult(this, iterationGraph.clone(), iterationTime, iterationAnalyzeResultList);
     }
 
     private void updateGraph(Graph iterationGraph, IterationAnalyzeResult iterationAnalyzeResult,
@@ -150,12 +158,17 @@ public class Analyzer {
             *④剩余的节点使用稀疏节点模块划分算法[A3]，得到新的若干模块。
         */
 
-        System.out.println("UnClassifiedNodes: " + unClassifiedNodes);
+        // System.out.println("UnClassifiedNodes: " + unClassifiedNodes);
         Set<Node> classifedNodes = new HashSet<>();
         for (Node unclassifiedNode : unClassifiedNodes) {
             boolean classified = false;
             for (ModuleSpecification specification : accurateSpecifications) {
                 if (specification.matchSpecification(unclassifiedNode).isMatch()) {
+                    iterationAnalyzeResult.getNodeMoveResults().add(
+                            new NodeMoveResult(unclassifiedNode, unclassifiedNode.getModule(),
+                                    specification.getModule(), NodeMoveReason.REMATCH)
+                    );
+                    specification.getMatchNodeSet().add(unclassifiedNode);
                     unclassifiedNode.setModule(specification.getModule());
                     classified = true;
                     break;
@@ -164,22 +177,17 @@ public class Analyzer {
             if (!classified) {
                 for (ModuleSpecification specification : normalSpecifications) {
                     if (specification.matchSpecification(unclassifiedNode).isMatch()) {
+                        iterationAnalyzeResult.getNodeMoveResults().add(
+                                new NodeMoveResult(unclassifiedNode, unclassifiedNode.getModule(),
+                                        specification.getModule(), NodeMoveReason.REMATCH)
+                        );
+                        specification.getMatchNodeSet().add(unclassifiedNode);
                         unclassifiedNode.setModule(specification.getModule());
                         classified = true;
                         break;
                     }
                 }
             }
-            if (!classified) {
-                for (ModuleSpecification specification : looseSpecifications) {
-                    if (specification.matchSpecification(unclassifiedNode).isMatch()) {
-                        unclassifiedNode.setModule(specification.getModule());
-                        classified = true;
-                        break;
-                    }
-                }
-            }
-
             if (classified) {
                 classifedNodes.add(unclassifiedNode);
             }
@@ -206,7 +214,8 @@ public class Analyzer {
             }
         }
 
-        Set<Module> newModules = nodePartitionAnalyzer.partitionSparseNodes(sparseNodes, referenceModules);
+        Set<Module> newModules = nodePartitionAnalyzer.partitionSparseNodes(sparseNodes, referenceModules,
+                iterationAnalyzeResult);
         iterationGraph.getModules().addAll(newModules);
 
         // 清除无任何节点的模块
@@ -220,5 +229,25 @@ public class Analyzer {
             case CLUSTER -> executeClusterAnalyze();
             case MATCH -> executeMatchAnalyze();
         };
+    }
+
+    public Graph getOriginalGraph() {
+        return originalGraph;
+    }
+
+    public AnalyzeTaskType getAnalyzeTaskType() {
+        return analyzeTaskType;
+    }
+
+    public ProjectConfig getProjectConfig() {
+        return projectConfig;
+    }
+
+    public AnalyzeMatchConfig getAnalyzeMatchConfig() {
+        return analyzeMatchConfig;
+    }
+
+    public AnalyzeClusterConfig getAnalyzeClusterConfig() {
+        return analyzeClusterConfig;
     }
 }

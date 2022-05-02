@@ -39,7 +39,7 @@ public class SourceCodeFile implements NodeReferenceObject {
 
     @Override
     public String getProjectDir() {
-        return projectPath.substring(0, projectPath.length() - fileName.length());
+        return projectPath.substring(0, projectPath.length() - fileName.length() - 1);
     }
 
     public String getFileName() {

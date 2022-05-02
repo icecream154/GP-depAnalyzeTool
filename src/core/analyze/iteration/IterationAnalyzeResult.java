@@ -14,7 +14,7 @@ public class IterationAnalyzeResult {
     private final int iterationIndex;
     private final Graph iterationGraph;
     private Set<Module> emptyModules;
-    private Set<NodeMoveResult> nodeMoveResults;
+    private final Set<NodeMoveResult> nodeMoveResults;
 
     public IterationAnalyzeResult(int iterationIndex, Graph iterationGraph) {
         this.iterationIndex = iterationIndex;
@@ -41,10 +41,6 @@ public class IterationAnalyzeResult {
 
     public Set<NodeMoveResult> getNodeMoveResults() {
         return nodeMoveResults;
-    }
-
-    public void setNodeMoveResults(Set<NodeMoveResult> nodeMoveResults) {
-        this.nodeMoveResults = nodeMoveResults;
     }
 
     public String getIterationAnalyzeResultInfo() {

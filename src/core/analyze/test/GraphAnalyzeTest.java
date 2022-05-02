@@ -3,6 +3,7 @@ package core.analyze.test;
 import core.analyze.*;
 import core.analyze.config.AnalyzeClusterConfig;
 import core.analyze.config.AnalyzerIterationStrategy;
+import core.analyze.config.ProjectConfig;
 import core.model.data.*;
 import core.model.data.Module;
 
@@ -75,7 +76,7 @@ public class GraphAnalyzeTest {
                 moduleNodes.add(nodeList.get(currentIndex));
                 currentIndex++;
             }
-            Module ng = new Module("NG" + i, moduleNodes, true);
+            Module ng = new Module("NG" + i, "", moduleNodes, true);
             for (Node node : moduleNodes) {
                 node.setModule(ng);
             }
@@ -92,8 +93,9 @@ public class GraphAnalyzeTest {
         Set<Module> modules = mockInitNodeModules(7, nodeSet);
 
         Graph initGraph = new Graph(nodeSet, edgeSet, modules);
-        Analyzer analyzer = new Analyzer(initGraph, AnalyzeTaskType.CLUSTER, null,
-                new AnalyzeClusterConfig(AnalyzerIterationStrategy.FIX, 3));
+        Analyzer analyzer = new Analyzer(initGraph, AnalyzeTaskType.CLUSTER, new ProjectConfig("testProject",
+                "Java", ""), null,
+                new AnalyzeClusterConfig(AnalyzerIterationStrategy.FIX, 1, true));
         AnalyzeResult result = analyzer.executeAnalyze();
         result.showIterationInfo();
     }

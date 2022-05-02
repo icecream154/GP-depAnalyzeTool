@@ -5,8 +5,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import core.model.data.Edge;
 import core.model.data.Graph;
-
-
 import core.model.data.Module;
 import core.model.data.Node;
 import scan.ProjectLanguage;
@@ -101,7 +99,8 @@ public class DependencyProjectScanner implements ProjectScanner {
             for (ModuleDependencySpecification moduleSpecification :
                     projectDependencySpecification.getProjectStructure()) {
                 pathModuleMap.put(moduleSpecification.getModulePath(),
-                        new Module(moduleSpecification.getModuleName(), new HashSet<>(), true));
+                        new Module(moduleSpecification.getModuleName(), moduleSpecification.getModulePath(),
+                                new HashSet<>(), true));
             }
             for (Node node : nodeList) {
                 String currentMatchPath = null;
@@ -133,7 +132,7 @@ public class DependencyProjectScanner implements ProjectScanner {
                 specifiedNodes.add(node);
             }
             for (String projectDir : dirs.keySet()) {
-                initModules.add(new Module(projectDir, dirs.get(projectDir), true));
+                initModules.add(new Module(projectDir.substring(projectDir.lastIndexOf("/") + 1), projectDir, dirs.get(projectDir), true));
             }
         }
 
@@ -168,6 +167,10 @@ public class DependencyProjectScanner implements ProjectScanner {
 
             JSONObject valueObject = currentCell.getJSONObject("values");
             double edgeWeight = 0;
+            if (valueObject.containsKey("Import")) {
+                double importCount = valueObject.getDouble("Import");
+                edgeWeight += importCount * 1;
+            }
             if (valueObject.containsKey("Call")) {
                 double callCount = valueObject.getDouble("Call");
                 edgeWeight += callCount * 3;
