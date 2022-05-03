@@ -38,4 +38,36 @@ public class ProjectStatics {
     public int abnormalNodes = 0;
     @JSONField(name = "newModuleNodes", ordinal = 16)
     public int newModuleNodes = 0;
+    // 比例相关
+    @JSONField(name = "accurateSpecifiationRate", ordinal = 17)
+    public double accurateSpecifiationRate = 0;
+    @JSONField(name = "normalSpecifiationRate", ordinal = 18)
+    public double normalSpecifiationRate = 0;
+    @JSONField(name = "looseSpecifiationRate", ordinal = 19)
+    public double looseSpecifiationRate = 0;
+    @JSONField(name = "accurateNodeRate", ordinal = 20)
+    public double accurateNodeRate = 0;
+    @JSONField(name = "normalNodeRate", ordinal = 21)
+    public double normalNodeRate = 0;
+    @JSONField(name = "looseNodeRate", ordinal = 22)
+    public double looseNodeRate = 0;
+    // 建议相关
+    @JSONField(name = "advises", ordinal = 23)
+    public int advises = 0;
+
+    public void calculateRate() {
+        int specificationSum = accurateSpecifiations + normalSpecifiations + looseSpecifications;
+        if (specificationSum != 0) {
+            accurateSpecifiationRate = (double) accurateSpecifiations / specificationSum;
+            normalSpecifiationRate = (double) normalSpecifiations / specificationSum;
+            looseSpecifiationRate = (double) looseSpecifications / specificationSum;
+        }
+
+        int nodeSum = accurateNodes + normalNodes + looseNodes;
+        if (specificationSum != 0) {
+            accurateNodeRate = (double) accurateNodes / nodeSum;
+            normalNodeRate = (double) normalNodes / nodeSum;
+            looseNodeRate = (double) looseNodes / nodeSum;
+        }
+    }
 }

@@ -103,6 +103,8 @@ public class AnalyzeResult {
                     statics.looseSpecifications += 1;
                     statics.looseNodes += specification.getSpecificationNodeSet().size();
                     looseAccuraySum += specification.getNonZeroDependencyAverageRange();
+//                    System.out.println("Loose Specification[" + statics.looseSpecifications + "] for Module[" + specification.getModule().getName() + "] " +
+//                            "accuracy = " + specification.getNonZeroDependencyAverageRange());
                 }
                 statics.abnormalNodes += specification.getAbnormalNodeSet().size();
 
@@ -120,6 +122,8 @@ public class AnalyzeResult {
                 for (int j = 0; j < adviseArray.length; j++) {
                     adviseArray[j] = advises.get(j);
                 }
+                statics.advises += advises.size();
+
                 moduleJsonOutputs[i] = new ModuleJsonOutput(
                         module.getName(), module.getPath(), module.getNodeNames(), specification.getDependentModuleNames(),
                         specification.getAccuracy().name(), specification.getUnMatchNodeNames(), specification.getMatchNodeNames(),
@@ -144,6 +148,8 @@ public class AnalyzeResult {
                 statics.looseNodes += specification.getSpecificationNodeSet().size();
                 statics.abnormalNodes += specification.getAbnormalNodeSet().size();
                 looseAccuraySum += specification.getNonZeroDependencyAverageRange();
+//                System.out.println("Empty Loose Specification[" + statics.looseSpecifications + "] for Module[" + specification.getModule().getName() + "] " +
+//                        "accuracy = " + specification.getNonZeroDependencyAverageRange());
             }
         }
 
@@ -159,6 +165,8 @@ public class AnalyzeResult {
         if (statics.looseSpecifications != 0) {
             statics.looseAverageAccuray = looseAccuraySum / statics.looseSpecifications;
         }
+
+        statics.calculateRate();
 
         return new ProjectJsonOutput(analyzer.getProjectConfig().getProjectName(),
                 analyzer.getProjectConfig().getProjectLanguage(), analyzer.getProjectConfig().getProjectFrame(),

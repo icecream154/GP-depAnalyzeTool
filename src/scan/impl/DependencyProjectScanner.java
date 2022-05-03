@@ -48,7 +48,7 @@ public class DependencyProjectScanner implements ProjectScanner {
     }
 
     @Override
-    public Graph scanProject(String projectPath, ProjectLanguage projectLanguage, boolean needScan,
+    public Graph scanProject(String projectName, String projectPath, ProjectLanguage projectLanguage, boolean needScan,
                              ProjectDependencySpecification projectDependencySpecification) throws Exception {
         // 当前仅支持java语言
         if (projectLanguage != ProjectLanguage.JAVA) {
@@ -58,7 +58,7 @@ public class DependencyProjectScanner implements ProjectScanner {
         // 构造命令执行依赖分析
         String currentDirectory = System.getProperty("user.dir");
         if (needScan) {
-            String command = String.format("java -jar %s -d=%s java %s temp",
+            String command = String.format("java -jar %s -d=%s java %s output/dependency/" + projectName,
                     dependencyJarPath, currentDirectory, projectPath);
             System.out.println(command);
             Process process = Runtime.getRuntime()
@@ -73,7 +73,7 @@ public class DependencyProjectScanner implements ProjectScanner {
         }
 
         // 解析依赖分析文件
-        String rawJson = FileUtils.readToString(currentDirectory + "/temp.json");
+        String rawJson = FileUtils.readToString(currentDirectory + "/output/dependency/" + projectName + ".json");
         if (rawJson == null) {
             throw new RuntimeException("Dependency tool execute failed");
         }

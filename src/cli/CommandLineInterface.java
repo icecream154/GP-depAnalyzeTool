@@ -34,31 +34,40 @@ public class CommandLineInterface {
         // projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/smallProjects/CourseTakeReportTool";
         // projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/webServerProjects/springboot-demo/complete";
 
-        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/tomcat";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/spring-boot";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/kafka";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/rocketmq";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/iotdb";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hive";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hbase";
-//        projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/cassandra";
-
         projectLanguage = "Java";
         projectFrame = "";
         taskType = "cluster";
         looseReClusterFlag = "false";
         // specificationYamlFile = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/smallProjects/CourseTakeReportTool/src/project-structure.yaml";
+        String[] projectPathList = new String[]{
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/tomcat",
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/spring-boot",
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/kafka",
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/rocketmq",
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/iotdb",
+//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hive",
+                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hbase",
+                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/cassandra"
+        };
 
+        for (String s : projectPathList) {
+            CommandLineInterface.executeAnalyzeTask(s, projectLanguage, projectFrame,
+                    taskType, specificationYamlFile, looseReClusterFlag);
+        }
+    }
+
+    private static void executeAnalyzeTask(String projectPath, String projectLanguage, String projectFrame,
+                                           String taskType, String specificationYamlFile,
+                                           String looseReClusterFlag) throws Exception {
         // 读取yaml文件
         ProjectDependencySpecification projectDependencySpecification =
                 ProjectDependencySpecification.load(specificationYamlFile);
 
         // 导入项目，生成依赖图
-        ProjectScanner projectScanner = new DependencyProjectScanner(CommandLineInterface.defaultDependencyJarPath);
-        Graph initGraph = projectScanner.scanProject(projectPath, ProjectLanguage.JAVA,
-                true, projectDependencySpecification);
-
         String projectName = projectPath.substring(projectPath.lastIndexOf("/") + 1);
+        ProjectScanner projectScanner = new DependencyProjectScanner(CommandLineInterface.defaultDependencyJarPath);
+        Graph initGraph = projectScanner.scanProject(projectName, projectPath, ProjectLanguage.JAVA,
+                true, projectDependencySpecification);
 
         // 配置分析器
         Analyzer analyzer = null;

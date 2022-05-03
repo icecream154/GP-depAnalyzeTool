@@ -16,6 +16,7 @@ public class Graph {
         for (Module module : modules) {
             nameModuleMap.put(module.getName(), module);
         }
+        clearEmptyModules();
     }
 
     public Module getModuleByName(String name) {
