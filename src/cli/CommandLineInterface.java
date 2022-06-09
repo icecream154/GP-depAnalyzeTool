@@ -15,6 +15,7 @@ import scan.match.ProjectDependencySpecification;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.util.Arrays;
 
 public class CommandLineInterface {
 
@@ -22,35 +23,30 @@ public class CommandLineInterface {
             "/Users/panxingyu/Desktop/GraduationProject/codes/scanner/depends-0.9.6/depends.jar";
 
     public static void main(String[] args) throws Exception {
-        // 命令行参数
-        String projectPath = "";
-        String projectLanguage = "";
-        String projectFrame = "";
+        if (args.length <= 1) {
+            System.out.println("Arguments not enougth, please check the README file.");
+            return;
+        }
+
         String taskType = "";
-        String specificationYamlFile = "";
-        String looseReClusterFlag = "";
+        if (args[0].equals("-c")) {
+            taskType = "cluster";
+        } else if (args[0].equals("-m")) {
+            taskType = "match";
+        } else {
+            System.out.println("Arguments not correct, please check the README file.");
+            return;
+        }
 
-        // 参数初始化
-        // projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/smallProjects/CourseTakeReportTool";
-        // projectPath = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/webServerProjects/springboot-demo/complete";
+        // 命令行参数
+        String projectLanguage = "Java";     // 编程语言默认为Java，暂不支持其他语言
+        String projectFrame = "";            // 编程框架默认为空，暂不支持
+        String looseReClusterFlag = "false"; // 再聚类配置项，默认FALSE
 
-        projectLanguage = "Java";
-        projectFrame = "";
-        taskType = "cluster";
-        looseReClusterFlag = "false";
-        // specificationYamlFile = "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/smallProjects/CourseTakeReportTool/src/project-structure.yaml";
-        String[] projectPathList = new String[]{
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/tomcat",
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/spring-boot",
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/kafka",
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/rocketmq",
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/iotdb",
-//                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hive",
-                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/hbase",
-                "/Users/panxingyu/Desktop/GraduationProject/codes/sampleProjects/largeProjects/cassandra"
-        };
-
+        // 余下的参数是待分析的项目路径
+        String[] projectPathList = Arrays.copyOfRange(args, 1, args.length);
         for (String s : projectPathList) {
+            String specificationYamlFile = s + "/project-structure.yaml";   // yaml文件路径，暂不支持配置
             CommandLineInterface.executeAnalyzeTask(s, projectLanguage, projectFrame,
                     taskType, specificationYamlFile, looseReClusterFlag);
         }
@@ -91,7 +87,7 @@ public class CommandLineInterface {
 
         // 将结果写入文件
         String outputFile = System.getProperty("user.dir") + "/output/" + projectName +
-                "-" + taskType + "-loose-" + looseReClusterFlag + ".json";
+                "-" + taskType + ".json";
         BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
         writer.write(JSON.toJSONString(output, true));
         writer.close();
